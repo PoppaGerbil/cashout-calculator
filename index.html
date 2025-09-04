@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🏆 The Finals Calculator</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --muted:#a8b3cf; --text:#eef1f8;
+    --round:14px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    --accent:#88e0ff; --good:#b0ffc8; --bad:#ff8e8e; --warn:#ffe07a;
+    --line:#232838; --btn-bg:#0b0d12; --btn-border:#1e2636;
+  }
+  body.hc{
+    --bg:#000; --card:#000; --muted:#cfd8ff; --text:#fff;
+    --accent:#00d0ff; --good:#00ff6a; --bad:#ff4242; --warn:#ffd400;
+    --line:#fff; --btn-bg:#000; --btn-border:#fff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{ margin:0; background:var(--bg); color:var(--text);
+        font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif; }
+  header{
+    position:sticky; top:0; z-index:5; backdrop-filter: blur(10px);
+    background: linear-gradient(180deg, rgba(15,17,21,0.95), rgba(15,17,21,0.75) 60%, rgba(15,17,21,0));
+    padding:14px 14px 8px; border-bottom:1px solid var(--line);
+    text-align:center;
+  }
+  h1{margin:0; font-size:18px; letter-spacing:0.2px}
+  .sub{color:var(--muted); font-size:12px; margin-top:4px}
+  .gerbl-link{color: var(--good); font-weight:800; text-decoration:none}
+  .gerbl-link:hover, .gerbl-link:focus{ text-decoration:underline }
+  main{padding:14px; display:grid; gap:12px; max-width:980px; margin:0 auto;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--round);
+    padding:12px; display:grid; gap:10px;
+  }
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .grow{flex:1}
+  input[type="number"], select{
+    background:var(--btn-bg); color:var(--text); border:1px solid var(--btn-border); border-radius:10px;
+    padding:10px 12px; font-size:16px; min-width:0;
+  }
+  .btn{
+    padding:10px 12px; border-radius:12px; border:1px solid var(--btn-border); background:var(--btn-bg);
+    color:var(--text); font-weight:700; cursor:pointer; user-select:none;
+  }
+  .btn:active{transform: translateY(1px)}
+  .btn-ghost{background:transparent}
+  .btn-primary{background:#0b1a22; border-color:#113946}
+  body.hc .btn-primary{background:#00151b; border-color:#00d0ff}
+  .small{font-size:12px}
+  .grid{display:grid; gap:12px}
+  .cols-2{grid-template-columns: 1fr 1fr}
+  .cols-3{grid-template-columns: 1fr 1fr 1fr}
+  @media (max-width: 760px){ .cols-2{grid-template-columns: 1fr} }
+  @media (max-width: 560px){ .cols-3{grid-template-columns: 1fr} }
+  .muted{color:var(--muted)}
+  .delta{font-family:var(--mono)}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .section-title{font-weight:800; font-size:14px; letter-spacing:0.2px}
+  .split{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .result{
+    padding:10px; border-radius:12px; background:var(--btn-bg); border:1px dashed var(--btn-border);
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+  }
+  .right{margin-left:auto}
+  .hint{font-size:12px; color:var(--muted)}
+  .counterbar{display:flex; gap:8px; flex-wrap:wrap}
+  .cbtn{border:1px solid var(--btn-border); background:var(--btn-bg); color:var(--text);
+        padding:8px 12px; border-radius:10px; font-weight:800; cursor:pointer; user-select:none; position:relative}
+  .cbtn[disabled]{opacity:0.5; cursor:not-allowed}
+  .badge{position:absolute; top:-7px; right:-7px; background:transparent; color:var(--muted); border-radius:999px;
+         font: 11px var(--mono); padding:2px 6px; border:1px dashed var(--btn-border)}
+  body.hc .badge{ background: rgba(255,255,255,0.22); color:#fff; border-color:#fff;
+                  -webkit-text-stroke: 0.6px #000; text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 1px #000, 0 0 1px #000; }
+  .badge.infinite{background:transparent; color:var(--muted); border:1px dashed var(--btn-border)}
+  .result-label{font-size:12px; color:var(--muted)}
+  .foot-right{display:flex; justify-content:flex-end; font-size:12px; color:var(--muted)}
+  ul.reminders{margin:0 0 0 18px; padding:0}
+  ul.reminders li{margin:4px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏆 The Finals Calculator</h1>
+  <div class="sub">Brought to you by the GERBL club! Watch us on Twitch: <a href="https://www.twitch.tv/mommagerbil" target="_blank" rel="noopener" class="gerbl-link">twitch.tv/mommagerbil</a></div>
+</header>
+<main>
+  <!-- Current Score -->
+  <section class="card" id="input-card">
+    <div class="row" style="align-items: baseline;">
+      <div class="section-title">Current Score</div>
+      <input id="currentScore" type="number" min="0" step="50" inputmode="numeric" placeholder="0" style="max-width:220px; margin-left:2ch">
+      <div class="grow"></div>
+      <button class="btn btn-ghost small" id="hcToggle" aria-pressed="false" title="Toggle high contrast mode">High Contrast</button>
+      <button class="btn btn-ghost small" id="reset">Reset</button>
+    </div>
+    <div class="row">
+      <button class="btn" data-add="50">+50</button>
+      <button class="btn" data-add="250">+250</button>
+      <button class="btn" data-add="500">+500</button>
+      <button class="btn" data-add="1000">+1000</button>
+      <button class="btn" data-add="500" title="+500 (Kill)">+1 Kill</button>
+    </div>
+  </section>
+
+  <!-- Wipe + To Recover in same row -->
+  <section class="grid cols-2" id="wipe-recover-row">
+    <!-- Wipe -->
+    <section class="card" id="wipe-card">
+      <div class="split">
+        <div class="section-title"><span id="wipeTitle">Amount after Team Wipe</span></div>
+        <button class="btn btn-primary" id="recordWipe">RIP</button>
+      </div>
+      <div class="result">
+        <div>
+          <div class="result-label">New total</div>
+          <div id="wipeNew" class="delta bad">$0</div>
+        </div>
+        <div class="right">
+          <div class="result-label">Amount Lost</div>
+          <div id="wipeDelta" class="delta bad">–$0</div>
+        </div>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <div class="hint" id="wipeHint">Kills needed to recover: —</div>
+        <div class="foot-right">Wipes: <span id="wipeCount">0</span></div>
+      </div>
+    </section>
+
+    <!-- To Recover -->
+    <section class="card" id="recover-card">
+      <div class="split">
+        <div class="section-title">To Recover</div>
+      </div>
+      <div class="result">
+        <div>
+          <div class="result-label">Kills Needed</div>
+          <div id="recKills" class="delta">$0</div>
+        </div>
+        <div class="right">
+          <div class="result-label">Best Objective</div>
+          <select id="recObjective"></select>
+        </div>
+      </div>
+      <div class="hint" id="recExplainer">We pick the smallest single objective worth at least the wipe loss.</div>
+    </section>
+  </section>
+
+  <!-- Objectives -->
+  <section class="card" id="obj-card">
+    <div class="split">
+      <div class="section-title">Objectives</div>
+      <button class="btn btn-primary" id="applyObj">Hype</button>
+    </div>
+    <div class="grid cols-3" id="groups"></div>
+    <div class="result">
+      <div>
+        <div class="result-label">New total</div>
+        <div id="objNew" class="delta">$0</div>
+      </div>
+      <div class="right">
+        <div class="result-label">Amount Added</div>
+        <div id="objDelta" class="delta">+$0</div>
+      </div>
+    </div>
+    <div class="hint" id="objHint"></div>
+  </section>
+
+  <!-- Reminders -->
+  <section class="card" id="reminders-card">
+    <div class="section-title">Reminders</div>
+    <ul class="reminders">
+      <li><strong>Light</strong> – 150 hp – 6 Bars – regen starts @ 7 sec no damage.</li>
+      <li><strong>Medium</strong> – 250 hp – 10 Bars – regen starts @ 9 sec no damage.</li>
+      <li><strong>Heavy</strong> – 350 hp – 14 Bars – regen starts @ 10 sec no damage.</li>
+      <li>Each HP Bar is <strong>25 hp</strong>.</li>
+      <li>Each <strong>1/4</strong> of the cashout icon is <strong>30 seconds</strong>.</li>
+      <li><strong>$1,000</strong> for: Tapping a vault, Stealing, Completing a Cashout, Team Wipe Bonus.</li>
+    </ul>
+  </section>
+
+  <!-- Config moved to bottom -->
+  <section class="card" id="config-card">
+    <div class="section-title">Objective Values</div>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="section-title">Plug (per press)</div>
+        <div class="row"><span class="muted grow">A (Vaults 1–2)</span><input id="plugA" type="number" value="2000" min="0" step="100"></div>
+        <div class="row"><span class="muted grow">B (Vaults 3–4)</span><input id="plugB" type="number" value="3000" min="0" step="100"></div>
+        <div class="row"><span class="muted grow">C (Vaults 5–6)</span><input id="plugC" type="number" value="4000" min="0" step="100"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Cashout (base, per press)</div>
+        <div class="row"><span class="muted grow">A (Vaults 1–2)</span><input id="cashA" type="number" value="8000" min="0" step="100"></div>
+        <div class="row"><span class="muted grow">B (Vaults 3–4)</span><input id="cashB" type="number" value="12000" min="0" step="100"></div>
+        <div class="row"><span class="muted grow">C (Vaults 5–6)</span><input id="cashC" type="number" value="18000" min="0" step="100"></div>
+      </div>
+    </div>
+    <div class="grid cols-2" style="margin-top:6px">
+      <div class="row">
+        <span class="muted grow">Wipe penalty %</span><input id="wipePct" type="number" min="0" max="90" step="1" value="15">
+      </div>
+      <div class="row">
+        <span class="muted grow">Points per kill</span><input id="ppk" type="number" min="0" step="50" value="500">
+      </div>
+    </div>
+    <div class="hint">Tap = +1000 each press • Steal Bonus = +1000 per press • Cashout adds +1000 completion bonus per press • Doubled adds 2×Cashout + 1000 (one bonus).</div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const nf = new Intl.NumberFormat('en-US');
+  const fmt = v => '$' + nf.format(Math.round(v));
+
+  // Elements
+  const $ = s => document.querySelector(s);
+  const els = {
+    current: $('#currentScore'),
+    // wipe
+    wipePct: $('#wipePct'),
+    wipeNew: $('#wipeNew'), wipeDelta: $('#wipeDelta'), wipeHint: $('#wipeHint'),
+    recordWipe: $('#recordWipe'), wipeCount: $('#wipeCount'),
+    // recover
+    recKills: $('#recKills'), recObjective: $('#recObjective'), recExplainer: $('#recExplainer'),
+    // objectives
+    ppk: $('#ppk'),
+    plugA: $('#plugA'), plugB: $('#plugB'), plugC: $('#plugC'),
+    cashA: $('#cashA'), cashB: $('#cashB'), cashC: $('#cashC'),
+    groups: $('#groups'),
+    objNew: $('#objNew'), objDelta: $('#objDelta'), objHint: $('#objHint'),
+    // meta
+    reset: $('#reset'), hc: $('#hcToggle')
+  };
+
+  // Objective state (for the Objectives section)
+  const INIT_GROUP = () => ({ tap:0, plug:0, cash:0, doubled:0, steal:0 });
+  const state = { A: INIT_GROUP(), B: INIT_GROUP(), C: INIT_GROUP() };
+
+  // Wipe counter
+  let wipeCount = 0;
+
+  // Build Objective Groups
+  const GROUPS = [
+    { key:'A', label:'Group A (vault 1+2)' },
+    { key:'B', label:'Group B (vault 3+4)' },
+    { key:'C', label:'Group C (vault 5+6)' },
+  ];
+
+  function buildGroups(){
+    els.groups.innerHTML = '';
+    GROUPS.forEach(g=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      const title = document.createElement('div');
+      title.className = 'section-title'; title.textContent = g.label;
+      card.appendChild(title);
+
+      const bar = document.createElement('div'); bar.className='counterbar';
+      // Buttons: Tap (≤2), Plug (≤2), Cashout (≤2), Doubled (≤1), Steal (∞)
+      bar.appendChild(makeCounterBtn(g.key, 'tap',     'Tap',      2));
+      bar.appendChild(makeCounterBtn(g.key, 'plug',    'Plug',     2));
+      bar.appendChild(makeCounterBtn(g.key, 'cash',    'Cashout',  2));
+      bar.appendChild(makeCounterBtn(g.key, 'doubled', 'Doubled',  1));
+      bar.appendChild(makeCounterBtn(g.key, 'steal',   'Steal Bonus', Infinity));
+      card.appendChild(bar);
+      els.groups.appendChild(card);
+    });
+  }
+
+  function makeCounterBtn(group, kind, label, max){
+    const btn = document.createElement('button');
+    btn.className='cbtn';
+    btn.type='button';
+    btn.dataset.group = group;
+    btn.dataset.kind = kind;
+    btn.dataset.max = String(max);
+    btn.dataset.armed = '0';
+    const badge = document.createElement('span');
+    badge.className = 'badge' + (max===Infinity?' infinite':'');
+    badge.textContent = (max===Infinity)? '∞' : '×' + max; // show REMAINING
+    btn.textContent = label + ' ';
+    btn.appendChild(badge);
+    btn.addEventListener('click', ()=>{
+      const g = state[group];
+      const used = g[kind] || 0;
+      const cap = (max===Infinity)? Infinity : parseInt(max,10);
+
+      if(max !== Infinity && used >= cap){
+        // At zero remaining — require two clicks to reset
+        if(btn.dataset.armed === '0'){
+          btn.dataset.armed = '1'; // arm
+          btn.title = 'Press again to reset';
+          return;
+        }else{
+          // reset
+          g[kind] = 0;
+          btn.dataset.armed = '0';
+          btn.title = '';
+          updateBadge(btn, g[kind]);
+          recalc();
+          return;
+        }
+      }
+
+      // Normal increment path
+      g[kind] = used + 1;
+      btn.dataset.armed = '0'; // clear any arming if previously set
+      updateBadge(btn, g[kind]);
+      recalc();
+    });
+    return btn;
+  }
+
+  function updateBadge(btn, used){
+    const maxStr = btn.dataset.max;
+    const badge = btn.querySelector('.badge');
+    if(maxStr === 'Infinity'){
+      badge.textContent = '∞';
+      return;
+    }
+    const max = parseInt(maxStr,10);
+    const remaining = Math.max(0, max - used);
+    badge.textContent = '×' + remaining; // count down
+  }
+
+  // Re-sync all counters (on reset or after Hype)
+  function syncAllBadges(){
+    document.querySelectorAll('.cbtn').forEach(btn=>{
+      const g = state[btn.dataset.group];
+      const used = g[btn.dataset.kind] || 0;
+      updateBadge(btn, used);
+      btn.dataset.armed = '0';
+      btn.title = '';
+    });
+  }
+
+  // --- Calculations ---
+  function readNum(el){ const n = parseFloat(el.value); return isNaN(n)?0:n; }
+
+  function computeWipe(current){
+    const pct = Math.max(0, Math.min(90, readNum(els.wipePct)));
+    const lost = Math.round(current * (pct/100));
+    const newTotal = current - lost;
+    // UI
+    els.wipeNew.textContent = fmt(newTotal);
+    els.wipeDelta.textContent = '–' + fmt(lost).slice(1);
+    // kills to recover
+    const ppk = Math.max(0, readNum(els.ppk));
+    const kills = ppk>0 ? Math.ceil(lost / ppk) : 0;
+    els.wipeHint.textContent = ppk>0 ? `Kills needed to recover: ${kills} at ${fmt(ppk)} each.` : 'Set Points per kill to compute recovery.';
+    return { newTotal, lost, kills, ppk };
+  }
+
+  function valuesFor(groupKey){
+    const plug = readNum(groupKey==='A'?els.plugA:groupKey==='B'?els.plugB:els.plugC);
+    const cash = readNum(groupKey==='A'?els.cashA:groupKey==='B'?els.cashB:els.cashC);
+    return { plug, cash, tap:1000, steal:1000, plus:1000 };
+  }
+
+  // Gather all single-action candidates
+  function allCandidates(){
+    const cand = [];
+    cand.push({label:'Tap', amount:1000});
+    cand.push({label:'Steal Bonus', amount:1000});
+    ['A','B','C'].forEach(k=>{
+      const v = valuesFor(k);
+      cand.push({label:`[${k}] Plug`, amount:v.plug});
+      cand.push({label:`[${k}] Cashout`, amount:v.cash + v.plus});
+      cand.push({label:`[${k}] Doubled`, amount:2*v.cash + v.plus});
+    });
+    return cand;
+  }
+
+  // Choose smallest single objective >= lost; build up to 5 ordered options
+  function chooseBestAndOptions(lost){
+    const cand = allCandidates();
+    const asc = cand.slice().sort((a,b)=> a.amount - b.amount);
+    const viable = asc.filter(x=> x.amount >= lost);
+    let best = null;
+    if(viable.length>0){
+      best = viable[0];
+    }else{
+      best = asc[asc.length-1]; // largest single if none can cover
+    }
+    const options = [];
+    const used = new Set();
+    const add = x => { if (x && !used.has(x.label)) { options.push(x); used.add(x.label); } };
+    add(best);
+    viable.forEach(add);
+    for(const x of asc){ if(options.length>=5) break; add(x); }
+    return { best, options: options.slice(0,5) };
+  }
+
+  function computeObjectives(current){
+    let delta = 0;
+    const parts = [];
+    ['A','B','C'].forEach(key=>{
+      const g = state[key];
+      const v = valuesFor(key);
+      const d =
+        g.tap    * v.tap +
+        g.plug   * v.plug +
+        g.cash   * (v.cash + v.plus) +
+        g.doubled* (2*v.cash + v.plus) +
+        g.steal  * v.steal;
+      if(d>0){
+        parts.push(`[${key}] Tap×${g.tap} • Plug×${g.plug} • Cashout×${g.cash} • Doubled×${g.doubled} • Steal×${g.steal} = +${fmt(d)}`);
+      }
+      delta += d;
+    });
+    const newTotal = current + delta;
+    els.objNew.textContent = fmt(newTotal);
+    els.objDelta.textContent = '+' + fmt(delta).slice(1);
+    els.objHint.textContent = parts.length? parts.join('  |  ') : 'No objective actions selected.';
+    return { newTotal, delta };
+  }
+
+  function computeRecoverCard(wipeInfo){
+    // Update kills needed
+    els.recKills.textContent = wipeInfo.ppk>0 ? (wipeInfo.kills+' kills') : '—';
+    // Build dropdown
+    const { best, options } = chooseBestAndOptions(wipeInfo.lost);
+    els.recObjective.innerHTML = '';
+    if(!best){ els.recObjective.innerHTML = '<option>—</option>'; return; }
+    options.forEach((x,i)=>{
+      const opt = document.createElement('option');
+      opt.value = x.label;
+      opt.textContent = `${x.label} (${fmt(x.amount)})`;
+      if(i===0) opt.selected = true; // best first and selected
+      els.recObjective.appendChild(opt);
+    });
+  }
+
+  function recalc(){
+    const cur = readNum(els.current);
+    const wr = computeWipe(cur);
+    computeRecoverCard(wr);
+    computeObjectives(cur);
+  }
+
+  // Events
+  document.body.addEventListener('click', (e)=>{
+    const t = e.target;
+    if(t.matches('#input-card .btn[data-add]')){
+      const add = parseInt(t.getAttribute('data-add'),10)||0;
+      els.current.value = Math.max(0, readNum(els.current) + add);
+      recalc();
+    }
+  });
+
+  els.recordWipe.addEventListener('click', ()=>{
+    const cur = readNum(els.current);
+    const pct = Math.max(0, Math.min(90, readNum(els.wipePct)));
+    const lost = Math.round(cur * (pct/100));
+    els.current.value = Math.max(0, cur - lost);
+    wipeCount += 1;
+    if(els.wipeCount) els.wipeCount.textContent = String(wipeCount);
+    recalc();
+  });
+
+  // live recalc on any numeric change
+  ['input','change'].forEach(evt=>{
+    document.body.addEventListener(evt, (e)=>{
+      if(e.target.matches('.cbtn')) return;
+      recalc();
+    }, true);
+  });
+
+  // Build objective buttons handling (pressed counts/remaining + double-click reset at zero)
+  function onObjectiveButtonClick(e){
+    if(!e.target.classList.contains('cbtn')) return;
+    // handled in individual button handlers inside makeCounterBtn
+  }
+  document.addEventListener('click', onObjectiveButtonClick);
+
+  // Apply objectives delta and RESET objective section
+  document.getElementById('applyObj').addEventListener('click', ()=>{
+    const cur = readNum(els.current);
+    const or = computeObjectives(cur);
+    els.current.value = Math.max(0, cur + or.delta);
+    // Reset objective state
+    state.A = { tap:0, plug:0, cash:0, doubled:0, steal:0 };
+    state.B = { tap:0, plug:0, cash:0, doubled:0, steal:0 };
+    state.C = { tap:0, plug:0, cash:0, doubled:0, steal:0 };
+    syncAllBadges(); // badges return to full remaining counts
+    recalc();
+  });
+
+  // Reset & High Contrast
+  document.getElementById('reset').addEventListener('click', ()=> location.reload() );
+  function setHC(on){
+    document.body.classList.toggle('hc', on);
+    document.getElementById('hcToggle').setAttribute('aria-pressed', String(on));
+    try{ localStorage.setItem('hc', on?'1':'0'); }catch(_){}
+  }
+  document.getElementById('hcToggle').addEventListener('click', ()=> setHC(!document.body.classList.contains('hc')) );
+
+  // Init
+  buildGroups();
+  syncAllBadges();
+  recalc();
+})();
+</script>
+</body>
+</html>
